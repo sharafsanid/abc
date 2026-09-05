@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFOC - Datacenter Engineering Hub</title>
+  <style>
+    :root {
+      --bg-dark: #050505;
+      --bg-panel: rgba(15, 23, 42, 0.85);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.6);
+      --grid-line: rgba(51, 65, 85, 0.4);
+    }
+
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-dark); margin: 0; display: flex; height: 100vh; overflow: hidden; color: #e2e8f0; user-select: none; }
+    
+    #animated-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; overflow: hidden; background: radial-gradient(circle at center, #0a0f1d 0%, var(--bg-dark) 100%); }
+    .fiber-laser { position: absolute; height: 2px; width: 150px; background: var(--accent); box-shadow: 0 0 15px 3px var(--accent-glow); opacity: 0; animation: shoot linear infinite; border-radius: 50%; }
+    .laser-1 { top: 20%; animation-duration: 4s; animation-delay: 0s; }
+    .laser-2 { top: 60%; animation-duration: 3.5s; animation-delay: 1.5s; background: #22c55e; box-shadow: 0 0 15px 3px rgba(34,197,94,0.6); }
+    .laser-3 { top: 85%; animation-duration: 5s; animation-delay: 2.5s; background: #f59e0b; box-shadow: 0 0 15px 3px rgba(245,158,11,0.6); }
+    
+    @keyframes shoot { 0% { transform: translateX(-200px); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(110vw); opacity: 0; } }
+    .server-led { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8; animation: blink infinite alternate; }
+    @keyframes blink { 0% { opacity: 0.2; } 100% { opacity: 1; } }
+
+    #sidebar { width: 380px; min-width: 320px; max-width: 600px; resize: horizontal; overflow: auto; flex-shrink: 0; background: var(--bg-panel); backdrop-filter: blur(12px); border-right: 2px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.8); z-index: 10; }
+    .panel-header { padding: 25px 20px; background: linear-gradient(180deg, rgba(2,6,23,0.9) 0%, transparent 100%); border-bottom: 1px solid rgba(56,189,248,0.3); text-align: center; flex-shrink: 0; }
+    .panel-header h2 { margin: 0; color: #fff; font-size: 20px; letter-spacing: 2px; text-shadow: 0 0 10px var(--accent-glow); }
+    .panel-header p { margin: 5px 0 0 0; font-size: 11px; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+    
+    .section { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .section h3 { margin: 0 0 12px 0; font-size: 11px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; }
+    
+    .site-selector-wrapper { margin-bottom: 15px; }
+    .site-selector-wrapper select { width: 100%; padding: 10px; background: rgba(0,0,0,0.6); border: 1px solid var(--accent); color: #fff; border-radius: 4px; font-weight: bold; cursor: pointer; outline: none; }
+    .site-selector-wrapper select:focus { box-shadow: 0 0 8px var(--accent-glow); }
+
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+    button { background: rgba(15, 23, 42, 0.6); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); padding: 12px 15px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; text-align: left; transition: all 0.2s; display: flex; align-items: center; gap: 10px; white-space: normal; line-height: 1.4; height: auto; }
+    button:hover { background: rgba(56, 189, 248, 0.15); border-color: var(--accent); color: #fff; transform: translateY(-1px); box-shadow: 0 0 15px var(--accent-glow); }
+    
+    .action-group { padding: 20px; display: flex; flex-direction: column; gap: 12px; background: rgba(2,6,23,0.8); margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+    .btn-save { background: rgba(22, 163, 74, 0.2); border-color: #16a34a; color: #4ade80; justify-content: center; text-transform: uppercase; letter-spacing: 1px; }
+    .btn-save:hover { background: #16a34a; color: #fff; box-shadow: 0 0 15px rgba(22,163,74,0.6); }
+    .btn-delete-mode { background: rgba(180, 83, 9, 0.2); border-color: #b45309; color: #fbbf24; justify-content: center; text-transform: uppercase; letter-spacing: 1px; }
+    .btn-delete-mode.active { background: #ef4444; border-color: #f87171; color: #fff; box-shadow: 0 0 20px rgba(239,68,68,0.8); }
+    
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 100; justify-content: center; align-items: center; }
+    .modal-content { background: #0f172a; padding: 30px; border-radius: 8px; border: 1px solid var(--accent); width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px var(--accent-glow); }
+    .modal-content h3 { margin-top: 0; color: #fff; text-shadow: 0 0 10px var(--accent-glow); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; text-transform: uppercase; }
+    .modal-content label { display: block; margin: 15px 0 8px; font-size: 11px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
+    .modal-content input, .modal-content select { width: 100%; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+    .modal-content input:focus, .modal-content select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 10px var(--accent-glow); }
+    .modal-actions { margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; }
+    .modal-actions button { justify-content: center; padding: 12px 25px; }
+    
+    #canvas-container { flex-grow: 1; overflow: auto; cursor: grab; position: relative; z-index: 5; }
+    #canvas-container.delete-active { cursor: crosshair; }
+    #canvas-container.delete-active .draggable:hover { opacity: 0.5; filter: hue-rotate(300deg) drop-shadow(0 0 10px red); cursor: crosshair; }
+    #canvas-container:active:not(.delete-active) { cursor: grabbing; }
+    
+    svg { width: 6000px; height: 4000px; background-color: transparent; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: 24px 24px; }
+    
+    .draggable { cursor: grab; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6)); transition: filter 0.1s; }
+    .draggable:active { filter: drop-shadow(0 20px 25px rgba(0,0,0,0.9)); }
+    .locked { cursor: default; }
+    .editable-text { cursor: pointer; transition: fill 0.2s; }
+    .editable-text:hover { fill: #fbbf24; }
+
+
+    /* NFOC Site / Phase register */
+    .dc-site-register { margin-top: 14px; border: 1px solid rgba(56,189,248,.22); border-radius: 8px; background: rgba(2,6,23,.62); overflow: hidden; }
+    .dc-site-register-header { padding: 10px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.06); }
+    .dc-site-register-title { color:#bae6fd; font-size:10px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; }
+    .dc-site-register-badge { color:#4ade80; font-size:9px; font-weight:800; }
+    .dc-site-list { max-height: 300px; overflow:auto; }
+    .dc-site-row { padding:9px 11px; border-bottom:1px solid rgba(255,255,255,.045); cursor:pointer; transition:.16s; }
+    .dc-site-row:last-child { border-bottom:0; }
+    .dc-site-row:hover, .dc-site-row.active { background:rgba(56,189,248,.10); }
+    .dc-site-row-main { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .dc-site-name { color:#f8fafc; font-size:11px; font-weight:800; }
+    .dc-site-phase { color:#67e8f9; font-size:9px; font-weight:800; }
+    .dc-site-meta { margin-top:4px; color:#64748b; font-size:8px; line-height:1.35; }
+    .dc-site-suggestion { padding:10px 11px; border-top:1px solid rgba(255,255,255,.06); background:rgba(34,197,94,.045); color:#bbf7d0; font-size:8px; line-height:1.5; }
+    .dc-site-suggestion b { color:#4ade80; }
+
+  </style>
+</head>
+<body>
+
+<div id="animated-bg">
+  <div class="fiber-laser laser-1"></div><div class="fiber-laser laser-2"></div><div class="fiber-laser laser-3"></div>
+  <script>
+    for(let i=0; i<30; i++) {
+      let led = document.createElement('div');
+      led.className = 'server-led';
+      led.style.left = Math.random() * 100 + 'vw';
+      led.style.top = Math.random() * 100 + 'vh';
+      led.style.animationDuration = (Math.random() * 2 + 0.5) + 's';
+      led.style.animationDelay = Math.random() * 2 + 's';
+      if(Math.random() > 0.5) { led.style.background = '#22c55e'; led.style.boxShadow = '0 0 8px #22c55e'; }
+      document.getElementById('animated-bg').appendChild(led);
+    }
+  </script>
+</div>
+
+<!-- Modal -->
+<div id="siteModal" class="modal">
+  <div class="modal-content">
+    <h3>🏢 Register Network Facility</h3>
+    <label>Site Name:</label><input type="text" id="siteName" placeholder="e.g., Ceel Sheikh Core">
+    <label>Server Room Type:</label>
+    <select id="roomType"><option value="Shelter">Outdoor Shelter</option><option value="Room">Indoor Datacenter</option></select>
+    <label>Capacity (Rack Spaces):</label><input type="number" id="rackCount" min="1" max="10" value="2">
+    <label>Primary Power Source:</label>
+    <select id="powerSource"><option value="Solar">Solar Array</option><option value="Generator">Diesel Generator</option><option value="Commercial Light">National Grid</option></select>
+    <div class="modal-actions">
+      <button style="background: transparent; border-color: rgba(255,255,255,0.2);" onclick="closeModal()">CANCEL</button>
+      <button class="btn-save" onclick="submitNewSite()">DEPLOY FACILITY</button>
+    </div>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="panel-header">
+    <h2>NFOC CO.</h2>
+    <p>DATACENTER ENGINEERING HUB</p>
+  </div>
+  
+  <div class="section">
+    <h3>🌍 Active Network Site</h3>
+    <div class="site-selector-wrapper">
+      <select id="siteSelector" onchange="switchSite()">
+        <!-- Populated via JS -->
+      </select>
+    </div>
+    <button style="background: rgba(14,165,233,0.2); border-color: var(--accent); color: #fff; justify-content: center; width: 100%;" onclick="openModal()">➕ Register New Datacenter</button>
+
+
+    <div class="dc-site-register">
+      <div class="dc-site-register-header">
+        <span class="dc-site-register-title">📍 Network Sites & Deployment Phases</span>
+        <span id="dc-site-source-badge" class="dc-site-register-badge">OPTICAL BLUEPRINT</span>
+      </div>
+      <div id="dc-site-list" class="dc-site-list"></div>
+      <div class="dc-site-suggestion"><b>Engineering suggestions:</b> prioritize HARGEISA as the primary Core DC, BERBERA and DJIBOUTI as strategic gateway/DR locations, BURCO as a regional compute hub, and keep amplifier/passive locations as hardened edge shelters unless traffic growth justifies expansion.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🏢 Infrastructure & Power</h3>
+    <div class="btn-group">
+      <button onclick="spawn('rack')">🗄️ 42U ITU-T Rack Frame</button>
+      <button onclick="spawn('pdu')">⚡ -48V DC Dual PDU (2U)</button>
+      <button onclick="spawn('ups')">🔋 High-Capacity UPS / Battery (3U)</button>
+      <button onclick="spawn('blanking')">⬛ Airflow Blanking Panel (1U)</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>💻 Compute & Storage</h3>
+    <div class="btn-group">
+      <button onclick="spawn('server_1u')">🖥️ 1U Enterprise Compute Node</button>
+      <button onclick="spawn('server_2u')">🖥️ 2U App Server Node</button>
+      <button onclick="spawn('storage_4u')">💽 4U High-Density SAN Storage</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🌐 Networking</h3>
+    <div class="btn-group">
+      <button onclick="spawn('tor_switch')">🔀 1U Top-of-Rack Switch</button>
+      <button onclick="spawn('core_router')">🌐 4U Spine / Core Router</button>
+      <button onclick="spawn('firewall')">🛡️ 1U Next-Gen Firewall</button>
+      <button onclick="spawn('kvm')">⌨️ 1U KVM Console Server</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>📡 Active Transmission (Optical)</h3>
+    <div class="btn-group">
+      <button onclick="spawn('oms7100')">📻 Optelian OMS-7100 Chassis (14U)</button>
+      <button onclick="spawn('dci')">🚀 800G Coherent Transponder (1U)</button>
+      <button onclick="spawn('roadm_wss')">🔄 Flex-Grid ROADM/WSS (4U)</button>
+      <button onclick="spawn('raman')">📈 Long-Haul Raman/EDFA (2U)</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🔗 Passive Optical Plant</h3>
+    <div class="btn-group">
+      <button onclick="spawn('odf_upc')">🔵 144-Port HD ODF UPC (6U)</button>
+      <button onclick="spawn('odf_apc')">🟢 144-Port HD ODF APC (6U)</button>
+      <button onclick="spawn('mdx')">🎛️ MDX Passive Mux Tray (2U)</button>
+      <button onclick="spawn('patch')">🔌 1U Optical Cross-Connect</button>
+    </div>
+  </div>
+
+  <div class="action-group">
+    <button id="deleteToggleBtn" class="btn-delete-mode" onclick="toggleDeleteMode()">🗑️ Target Delete (OFF)</button>
+    <button class="btn-save" onclick="saveLayout()">💾 Commit Site State</button>
+  </div>
+</div>
+
+<div id="canvas-container">
+  <svg id="canvas" xmlns="http://www.w3.org/2000/svg" onmousedown="startDrag(event)" onmousemove="drag(event)" onmouseup="endDrag(event)" onmouseleave="endDrag(event)">
+    <defs>
+      <linearGradient id="chassis-metal" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+      <linearGradient id="server-metal" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#1e293b"/>
+      </linearGradient>
+      <linearGradient id="rack-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#334155"/><stop offset="10%" stop-color="#1e293b"/><stop offset="90%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+      <linearGradient id="dci-metal" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#111827"/><stop offset="50%" stop-color="#1f2937"/><stop offset="100%" stop-color="#111827"/>
+      </linearGradient>
+
+      <!-- Port Patterns -->
+      <pattern id="ports-blue" width="25" height="24" patternUnits="userSpaceOnUse">
+        <rect x="2" y="2" width="20" height="20" fill="#020617" rx="2" stroke="#334155" stroke-width="1"/>
+        <circle cx="8" cy="12" r="3.5" fill="#38bdf8"/><circle cx="16" cy="12" r="3.5" fill="#38bdf8"/>
+      </pattern>
+      <pattern id="ports-green" width="25" height="24" patternUnits="userSpaceOnUse">
+        <rect x="2" y="2" width="20" height="20" fill="#020617" rx="2" stroke="#334155" stroke-width="1"/>
+        <circle cx="8" cy="12" r="3.5" fill="#22c55e"/><circle cx="16" cy="12" r="3.5" fill="#22c55e"/>
+      </pattern>
+      <pattern id="rj45-ports" width="20" height="24" patternUnits="userSpaceOnUse">
+        <rect x="2" y="4" width="16" height="16" fill="#020617" rx="1" stroke="#64748b" stroke-width="1"/>
+        <rect x="6" y="14" width="8" height="6" fill="#1e293b"/>
+      </pattern>
+      <pattern id="drive-bays" width="30" height="24" patternUnits="userSpaceOnUse">
+        <rect x="2" y="2" width="26" height="20" fill="#020617" stroke="#334155" stroke-width="1" rx="1"/>
+        <line x1="6" y1="12" x2="24" y2="12" stroke="#475569" stroke-width="2"/>
+        <circle cx="24" cy="6" r="1.5" fill="#22c55e"/>
+      </pattern>
+
+      <!-- TEMPLATES (Heights match 1U = 24px) -->
+      <g id="tmpl-rack">
+        <text class="editable-text site-title" x="475" y="-55" fill="#38bdf8" font-size="28" font-weight="bold" text-anchor="middle" filter="drop-shadow(0 0 5px rgba(56,189,248,0.5))">[Unregistered Site]</text>
+        <text class="editable-text rack-title" x="475" y="-25" fill="#f8fafc" font-size="20" font-weight="bold" text-anchor="middle">Rack 01</text>
+        <rect class="rack-bg" x="0" y="0" width="950" height="1130" fill="url(#rack-metal)" stroke="#475569" stroke-width="6" rx="6" filter="drop-shadow(0 20px 30px rgba(0,0,0,0.9))"/>
+        <rect x="55" y="60" width="840" height="1008" fill="#050505"/>
+        <rect x="15" y="10" width="40" height="1110" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+        <rect x="895" y="10" width="40" height="1110" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+        <text x="35" y="565" fill="#1e293b" font-size="20" font-weight="bold" text-anchor="middle" transform="rotate(-90 35 565)" letter-spacing="4">42U ITU-T DATACENTER RACK</text>
+        <text x="915" y="565" fill="#1e293b" font-size="20" font-weight="bold" text-anchor="middle" transform="rotate(90 915 565)" letter-spacing="4">NFOC CO. TRANSMISSION</text>
+        <g class="ru-markings"></g>
+        <g class="modules-container"></g>
+      </g>
+
+      <g id="tmpl-pdu">
+        <rect x="0" y="0" width="840" height="48" fill="#020617" stroke="#334155" rx="2" stroke-width="2"/>
+        <text x="420" y="28" fill="#ef4444" font-size="14" font-weight="bold" text-anchor="middle" filter="drop-shadow(0 0 5px rgba(239,68,68,0.5))">-48V DC DUAL-FEED PDU (A/B)</text>
+      </g>
+      <g id="tmpl-ups">
+        <rect x="0" y="0" width="840" height="72" fill="#0f172a" stroke="#475569" rx="2" stroke-width="2"/>
+        <rect x="20" y="16" width="120" height="40" fill="#020617" rx="4"/>
+        <text x="80" y="42" fill="#38bdf8" font-size="20" font-weight="bold" text-anchor="middle">220V</text>
+        <text x="420" y="42" class="editable-text" fill="#cbd5e1" font-size="16" font-weight="bold" text-anchor="middle">HIGH-CAPACITY UPS & BATTERY BANK</text>
+      </g>
+      <g id="tmpl-blanking">
+        <rect x="0" y="0" width="840" height="24" fill="#1e293b" stroke="#0f172a" stroke-width="1"/>
+        <line x1="0" y1="12" x2="840" y2="12" stroke="#334155" stroke-dasharray="10 5" stroke-width="1"/>
+      </g>
+      <g id="tmpl-server_1u">
+        <rect x="0" y="0" width="840" height="24" fill="url(#server-metal)" stroke="#64748b" rx="2"/>
+        <rect x="10" y="0" width="240" height="24" fill="url(#drive-bays)"/>
+        <text x="420" y="16" class="editable-text" fill="#f8fafc" font-size="12" font-weight="bold" text-anchor="middle">1U ENTERPRISE COMPUTE NODE</text>
+      </g>
+      <g id="tmpl-server_2u">
+        <rect x="0" y="0" width="840" height="48" fill="url(#server-metal)" stroke="#64748b" rx="2"/>
+        <rect x="10" y="0" width="300" height="48" fill="url(#drive-bays)"/>
+        <text x="500" y="28" class="editable-text" fill="#f8fafc" font-size="14" font-weight="bold" text-anchor="middle">NFOC APPLICATION NODE (NODE.JS / POSTGRESQL)</text>
+      </g>
+      <g id="tmpl-storage_4u">
+        <rect x="0" y="0" width="840" height="96" fill="#1e293b" stroke="#94a3b8" rx="2"/>
+        <rect x="10" y="10" width="820" height="76" fill="url(#drive-bays)"/>
+        <rect x="320" y="38" width="200" height="20" fill="#0f172a" rx="4"/>
+        <text x="420" y="52" class="editable-text" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">SAN STORAGE ARRAY</text>
+      </g>
+      <g id="tmpl-tor_switch">
+        <rect x="0" y="0" width="840" height="24" fill="#020617" stroke="#6366f1" rx="1"/>
+        <text x="120" y="16" class="editable-text" fill="#a5b4fc" font-size="11" font-weight="bold">TOP-OF-RACK SWITCH</text>
+        <rect x="300" y="0" width="480" height="24" fill="url(#rj45-ports)"/>
+      </g>
+      <g id="tmpl-core_router">
+        <rect x="0" y="0" width="840" height="96" fill="#0f172a" stroke="#3b82f6" stroke-width="2" rx="4"/>
+        <text x="420" y="25" class="editable-text" fill="#bfdbfe" font-size="16" font-weight="bold" text-anchor="middle">NFOC SPINE / CORE ROUTER</text>
+        <rect x="20" y="40" width="380" height="40" fill="url(#ports-blue)"/>
+        <rect x="440" y="40" width="380" height="40" fill="url(#rj45-ports)"/>
+      </g>
+      <g id="tmpl-firewall">
+        <rect x="0" y="0" width="840" height="24" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" rx="1"/>
+        <text x="20" y="16" class="editable-text" fill="#fca5a5" font-size="12" font-weight="bold">NEXT-GEN FIREWALL</text>
+        <rect x="600" y="0" width="200" height="24" fill="url(#rj45-ports)"/>
+      </g>
+      <g id="tmpl-kvm">
+        <rect x="0" y="0" width="840" height="24" fill="#334155" stroke="#94a3b8" rx="1"/>
+        <rect x="350" y="4" width="140" height="16" fill="#020617" rx="2"/>
+        <text x="420" y="16" class="editable-text" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">DATACENTER KVM CONSOLE</text>
+      </g>
+      <g id="tmpl-oms7100">
+        <rect x="0" y="0" width="840" height="336" fill="url(#chassis-metal)" stroke="#0ea5e9" stroke-width="2" rx="4"/>
+        <text x="20" y="25" fill="#ffffff" font-size="18" font-weight="bold">Optelian</text>
+        <text x="420" y="22" class="editable-text" fill="#bae6fd" font-size="13" font-weight="bold" text-anchor="middle">OMS-7100 DWDM CHASSIS: [Node Role]</text>
+        <rect x="15" y="35" width="810" height="205" fill="#020617" stroke="#334155" rx="2"/>
+        <text x="420" y="145" fill="#334155" font-size="24" font-weight="bold" text-anchor="middle" letter-spacing="5">CARD CAGE</text>
+      </g>
+      <g id="tmpl-dci">
+        <rect x="0" y="0" width="840" height="24" fill="url(#dci-metal)" stroke="#6366f1" stroke-width="2" rx="2"/>
+        <text x="420" y="16" class="editable-text" fill="#e0e7ff" font-size="11" font-weight="bold" text-anchor="middle">800G DCI TRANSPONDER PLATFORM [ID]</text>
+        <circle cx="30" cy="12" r="4" fill="#22c55e" filter="drop-shadow(0 0 5px #22c55e)"/>
+      </g>
+      <g id="tmpl-roadm_wss">
+        <rect x="0" y="0" width="840" height="96" fill="#0f172a" stroke="#8b5cf6" stroke-width="2" rx="2"/>
+        <text x="20" y="30" fill="#c4b5fd" font-size="14" font-weight="bold">FLEX-GRID WSS / ROADM (DEGREE-N)</text>
+        <rect x="400" y="20" width="400" height="50" fill="url(#ports-blue)"/>
+      </g>
+      <g id="tmpl-raman">
+        <rect x="0" y="0" width="840" height="48" fill="#1e293b" stroke="#f59e0b" stroke-width="2" rx="2"/>
+        <text x="20" y="27" class="editable-text" fill="#fde68a" font-size="14" font-weight="bold">LONG-HAUL RAMAN / EDFA AMPLIFIER</text>
+        <rect x="650" y="10" width="150" height="24" fill="url(#ports-blue)"/>
+      </g>
+      <g id="tmpl-odf_upc">
+        <rect x="0" y="0" width="840" height="144" fill="url(#rack-metal)" stroke="#94a3b8" stroke-width="2" rx="4"/>
+        <text x="20" y="30" class="editable-text" fill="#ffffff" font-size="15" font-weight="bold">144-PORT HD ODF: [Route] (UPC)</text>
+        <rect x="50" y="50" width="350" height="72" fill="url(#ports-blue)" stroke="#334155"/>
+        <rect x="440" y="50" width="350" height="72" fill="url(#ports-blue)" stroke="#334155"/>
+      </g>
+      <g id="tmpl-odf_apc">
+        <rect x="0" y="0" width="840" height="144" fill="url(#rack-metal)" stroke="#22c55e" stroke-width="2" rx="4"/>
+        <text x="20" y="30" class="editable-text" fill="#4ade80" font-size="15" font-weight="bold">144-PORT HD ODF: [Route] (APC)</text>
+        <rect x="50" y="50" width="350" height="72" fill="url(#ports-green)" stroke="#166534"/>
+        <rect x="440" y="50" width="350" height="72" fill="url(#ports-green)" stroke="#166534"/>
+      </g>
+      <g id="tmpl-mdx">
+        <rect x="0" y="0" width="840" height="48" fill="#0f172a" stroke="#0ea5e9" stroke-width="1" rx="2"/>
+        <text x="20" y="28" fill="#ffffff" font-size="12" font-weight="bold">OPTELIAN MDX</text>
+        <text x="420" y="28" class="editable-text" fill="#bae6fd" font-size="12" font-weight="bold" text-anchor="middle">DROP/ADD CHANNELS: [List]</text>
+      </g>
+      <g id="tmpl-patch">
+        <rect x="0" y="0" width="840" height="24" fill="#1e293b" stroke="#64748b" rx="2"/>
+        <text x="20" y="16" class="editable-text" fill="#e2e8f0" font-size="11" font-weight="bold">1U CROSS-CONNECT: [Usage]</text>
+        <rect x="300" y="0" width="500" height="24" fill="url(#ports-blue)"/>
+      </g>
+    </defs>
+    
+    <g id="rack-layer"></g>
+    <g id="equipment-layer"></g>
+  </svg>
+</div>
+
+<script>
+  let activeDrag = null;
+  let offset = { x: 0, y: 0 };
+  let spawnCounters = { rack: 0, eq: 0 };
+  let deleteMode = false;
+  let isRackDrag = false;
+
+  // Site Management System
+  let sites = {};
+  let currentSiteId = null;
+
+
+  // Blueprint-backed Datacenter Site Register.
+  // The fallback catalog mirrors the six-phase Site section; when embedded in index.html,
+  // the parent mainframe can send the live blueprint via postMessage.
+  const defaultBlueprintPhases = {
+    "Phase-1": [
+      {name:"HQ-Hargeisa", code:"HARGEISA-11", role:"HQ / Core", siteType:"Add/Drop"},
+      {name:"CELSHEIKH", code:"CEL-SHEIKH-1", role:"Optical Site", siteType:"Add/Drop"},
+      {name:"LUGHAYA", code:"LUGHAYA", role:"Optical Site", siteType:"Amplifier"},
+      {name:"SAYLAC", code:"SAYLAC", role:"Optical Site", siteType:"Amplifier"},
+      {name:"LOWYOCADO", code:"LOWYOCADO", role:"Site in Phase-1 plan", siteType:"Passive/ODF"},
+      {name:"DJIBOUTI", code:"DJIBOUTI-1", role:"International Gateway", siteType:"Add/Drop"}
+    ],
+    "Phase-2": [
+      {name:"HQ-Hargeisa", code:"HARGEISA-11", role:"HQ / Core", siteType:"Add/Drop"},
+      {name:"GABILEY", code:"GABILEY", role:"Optical Site", siteType:"Add/Drop"},
+      {name:"WAJAALE", code:"WAJAALE", role:"Border Node", siteType:"Add/Drop"},
+      {name:"BORAMA", code:"BORAMA", role:"ROADM Site", siteType:"Add/Drop"},
+      {name:"ARROWARAN", code:"ARROWARAN", role:"ROADM Site", siteType:"Amplifier"},
+      {name:"CELGAL", code:"CELGAL", role:"ROADM Site", siteType:"Amplifier"},
+      {name:"DJIBOUTI", code:"DJIBOUTI-1", role:"International Gateway", siteType:"Add/Drop"}
+    ],
+    "Phase-3": [
+      {name:"CELSHEIKH", code:"CEL-SHEIKH-1", role:"Optical Site", siteType:"Amplifier"},
+      {name:"BERBERA", code:"BERBERA", role:"ROADM Site", siteType:"Add/Drop"}
+    ],
+    "Phase-4": [
+      {name:"HQ-Hargeisa", code:"HARGEISA-11", role:"HQ / Core", siteType:"Add/Drop"},
+      {name:"SHARUB", code:"SHARUB", role:"Optical Site", siteType:"Amplifier"},
+      {name:"BURCO", code:"BURCO", role:"Optical Site", siteType:"Add/Drop"}
+    ],
+    "Phase-5": [
+      {name:"BURCO", code:"BURCO", role:"Optical Site", siteType:"Add/Drop"},
+      {name:"SHEIKH", code:"SHEIKH", role:"Optical Site", siteType:"Amplifier"},
+      {name:"BERBERA", code:"BERBERA", role:"ROADM Site", siteType:"Add/Drop"}
+    ],
+    "Phase-6": [
+      {name:"BURCO", code:"BURCO", role:"Optical Site", siteType:"Add/Drop"},
+      {name:"INAFAMDOOBE", code:"INA-FAMDOOBE", role:"Optical Site", siteType:"Amplifier"},
+      {name:"CAYNABO", code:"CAYNABO", role:"ROADM Site", siteType:"Add/Drop"}
+    ]
+  };
+  let blueprintSiteCatalog = defaultBlueprintPhases;
+
+  function flattenBlueprintSites() {
+    const map = new Map();
+    Object.entries(blueprintSiteCatalog || {}).forEach(([phase, phaseSites]) => {
+      (phaseSites || []).forEach(site => {
+        const key = String(site.code || site.name).toUpperCase();
+        if (!map.has(key)) map.set(key, { ...site, phases: [] });
+        const item = map.get(key);
+        if (!item.phases.includes(phase)) item.phases.push(phase);
+      });
+    });
+    return [...map.values()];
+  }
+
+  function datacenterRoleSuggestion(site) {
+    const role = String(site.role || '').toLowerCase();
+    const type = String(site.siteType || '').toLowerCase();
+    if (role.includes('hq') || role.includes('core')) return 'Primary Core DC • dual power + redundant cooling + 24/7 operations';
+    if (role.includes('gateway')) return 'Gateway / DR DC • carrier interconnect + resilient backup power';
+    if (role.includes('roadm')) return 'Regional Edge DC • 4–8 racks, optical + compute expansion ready';
+    if (type.includes('amplifier')) return 'Hardened Edge Shelter • compact rack, DC power, environmental monitoring';
+    if (type.includes('passive')) return 'Passive ODF Shelter • low-power facility with fiber protection and access control';
+    return 'Edge / Access DC • 2–4 racks with growth space';
+  }
+
+  function renderDatacenterSiteRegister() {
+    const list = document.getElementById('dc-site-list');
+    if (!list) return;
+    const sites = flattenBlueprintSites();
+    list.innerHTML = sites.map(site => {
+      const id = 'blueprint_' + String(site.code || site.name).replace(/[^a-z0-9]/gi,'_').toLowerCase();
+      const known = sitesMapHas(id) ? ' active' : '';
+      return `<div class="dc-site-row${known}" data-site-code="${String(site.code || site.name).replace(/"/g,'&quot;')}" onclick="selectBlueprintDatacenterSite('${String(site.code || site.name).replace(/'/g,"\\'")}')">
+        <div class="dc-site-row-main"><span class="dc-site-name">${site.name}</span><span class="dc-site-phase">${site.phases.join(' • ')}</span></div>
+        <div class="dc-site-meta">${site.code} • ${site.role} • ${site.siteType}<br><span style="color:#4ade80">Suggestion:</span> ${datacenterRoleSuggestion(site)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function sitesMapHas(id) { return currentSiteId === id; }
+
+  function syncBlueprintSiteCatalog(payload) {
+    if (!payload) return;
+    const incoming = {};
+    Object.entries(payload).forEach(([key, phase]) => {
+      const title = phase?.title || key.replace('phase-','Phase-');
+      incoming[title] = (phase?.sites || []).map(s => ({...s}));
+    });
+    if (Object.keys(incoming).length) {
+      blueprintSiteCatalog = incoming;
+      const catalog = flattenBlueprintSites();
+      catalog.forEach(site => {
+        const id = 'blueprint_' + String(site.code || site.name).replace(/[^a-z0-9]/gi,'_').toLowerCase();
+        if (!sites[id]) sites[id] = { name: String(site.name).toUpperCase(), code: site.code || site.name, phases: site.phases, role: site.role, siteType: site.siteType, racks: '', eq: '' };
+        else { sites[id].phases = site.phases; sites[id].role = site.role; sites[id].siteType = site.siteType; sites[id].code = site.code || site.name; }
+      });
+      updateSiteSelector();
+      renderDatacenterSiteRegister();
+      if (!currentSiteId || !sites[currentSiteId]) loadSite(Object.keys(sites)[0]);
+    }
+  }
+
+  window.addEventListener('message', event => {
+    if (event.data?.type === 'NFOC_BLUEPRINT_PHASES') syncBlueprintSiteCatalog(event.data.phases);
+  });
+
+  // Initialize RU markings dynamically
+  const tmplRack = document.getElementById('tmpl-rack');
+  const ruGroup = tmplRack.querySelector('.ru-markings');
+  for (let i = 42; i >= 1; i--) {
+    let yPos = 60 + ((42 - i) * 24);
+    ruGroup.innerHTML += `<line x1="15" y1="${yPos}" x2="55" y2="${yPos}" stroke="#334155" stroke-width="1"/>`;
+    ruGroup.innerHTML += `<line x1="895" y1="${yPos}" x2="935" y2="${yPos}" stroke="#334155" stroke-width="1"/>`;
+    ruGroup.innerHTML += `<text x="35" y="${yPos + 16}" fill="#64748b" font-size="10" text-anchor="middle" font-weight="bold" pointer-events="none">${i}</text>`;
+    ruGroup.innerHTML += `<text x="915" y="${yPos + 16}" fill="#64748b" font-size="10" text-anchor="middle" font-weight="bold" pointer-events="none">${i}</text>`;
+  }
+
+  window.onload = function() {
+    let storedSites = localStorage.getItem('nfoc_sites_multi');
+    if (storedSites) {
+      sites = JSON.parse(storedSites);
+      currentSiteId = localStorage.getItem('nfoc_current_site_id');
+      if (!sites[currentSiteId]) currentSiteId = Object.keys(sites)[0];
+    } else {
+      // Default initial state
+      currentSiteId = 'default_site';
+      sites[currentSiteId] = { name: "MAIN HEADQUARTERS", racks: "", eq: "" };
+    }
+    
+    // Seed the Datacenter module from the Site/Optical Blueprint inventory without overwriting saved layouts.
+    syncBlueprintSiteCatalog(Object.fromEntries(Object.entries(blueprintSiteCatalog).map(([title, sites]) => [title, {title, sites}])));
+    updateSiteSelector();
+    loadSite(currentSiteId);
+    renderDatacenterSiteRegister();
+
+    // Ask the parent mainframe for its live Site section dataset when this page is embedded.
+    if (window.parent && window.parent !== window) window.parent.postMessage({type:'NFOC_REQUEST_BLUEPRINT_PHASES'}, '*');
+  };
+
+  function updateSiteSelector() {
+    let select = document.getElementById('siteSelector');
+    select.innerHTML = '';
+    for (const [id, data] of Object.entries(sites)) {
+      let option = document.createElement('option');
+      option.value = id;
+      const phases = Array.isArray(data.phases) ? ` • ${data.phases.join(', ')}` : '';
+      option.textContent = `${data.name}${phases}`;
+      if (id === currentSiteId) option.selected = true;
+      select.appendChild(option);
+    }
+  }
+
+  function saveCurrentSiteState() {
+    if (currentSiteId && sites[currentSiteId]) {
+      sites[currentSiteId].racks = document.getElementById('rack-layer').innerHTML;
+      sites[currentSiteId].eq = document.getElementById('equipment-layer').innerHTML;
+      localStorage.setItem('nfoc_sites_multi', JSON.stringify(sites));
+      localStorage.setItem('nfoc_current_site_id', currentSiteId);
+    }
+  }
+
+  function loadSite(siteId) {
+    currentSiteId = siteId;
+    document.getElementById('rack-layer').innerHTML = sites[siteId].racks;
+    document.getElementById('equipment-layer').innerHTML = sites[siteId].eq;
+    spawnCounters = { rack: 0, eq: 0 };
+    recalculateSpawns();
+  }
+
+  function switchSite() {
+    saveCurrentSiteState();
+    let selectedId = document.getElementById('siteSelector').value;
+    loadSite(selectedId);
+  }
+
+
+
+  function selectBlueprintDatacenterSite(code) {
+    const id = 'blueprint_' + String(code).replace(/[^a-z0-9]/gi,'_').toLowerCase();
+    if (!sites[id]) return;
+    saveCurrentSiteState();
+    loadSite(id);
+    const select = document.getElementById('siteSelector');
+    if (select) select.value = id;
+    renderDatacenterSiteRegister();
+  }
+
+  function openModal() { document.getElementById('siteModal').style.display = 'flex'; }
+  function closeModal() { document.getElementById('siteModal').style.display = 'none'; }
+  
+  function submitNewSite() {
+    saveCurrentSiteState(); // Save current before swapping
+
+    let rawName = document.getElementById('siteName').value || 'New NFOC Facility';
+    let siteName = rawName.toUpperCase();
+    let roomType = document.getElementById('roomType').value;
+    let rackCount = parseInt(document.getElementById('rackCount').value) || 1;
+    let powerSrc = document.getElementById('powerSource').value;
+    
+    let newId = 'site_' + Date.now();
+    sites[newId] = { name: siteName, racks: "", eq: "" };
+    currentSiteId = newId;
+    
+    // Clear Workspace for new site
+    document.getElementById('rack-layer').innerHTML = "";
+    document.getElementById('equipment-layer').innerHTML = "";
+    spawnCounters = { rack: 0, eq: 0 };
+
+    let startX = 100 + (spawnCounters.rack * 1050);
+    let startY = 120;
+    let bgWidth = (rackCount * 1050) - 50;
+
+    let siteHeaderHTML = `
+      <g>
+        <rect x="${startX - 30}" y="${startY - 90}" width="${bgWidth}" height="100" fill="rgba(2,6,23,0.8)" stroke="#38bdf8" stroke-width="2" rx="8" class="locked"/>
+        <text x="${startX}" y="${startY - 45}" fill="#fff" font-size="32" font-weight="bold" class="locked" filter="drop-shadow(0 0 10px rgba(56,189,248,0.8))">${siteName}</text>
+        <text x="${startX}" y="${startY - 15}" fill="#94a3b8" font-size="16" font-weight="bold" class="locked" letter-spacing="2">TYPE: ${roomType.toUpperCase()} | POWER: ${powerSrc.toUpperCase()} | CAP: ${rackCount} RACKS</text>
+      </g>
+    `;
+    document.getElementById('rack-layer').innerHTML += siteHeaderHTML;
+
+    for(let i = 0; i < rackCount; i++) spawn('rack', siteName, i + 1);
+    
+    updateSiteSelector();
+    saveCurrentSiteState();
+    closeModal();
+  }
+
+  function recalculateSpawns() {
+    let elements = document.querySelectorAll('#rack-layer > g.rack-frame');
+    elements.forEach(el => {
+      let t = el.getAttribute('transform');
+      if (t) {
+        let x = parseInt(t.match(/translate\(([^,]+)/)[1]);
+        if (x > 50 + (spawnCounters.rack * 1000)) spawnCounters.rack++;
+      }
+    });
+  }
+
+  function getMousePosition(evt) {
+    let CTM = document.getElementById('canvas').getScreenCTM();
+    return { x: (evt.clientX - CTM.e) / CTM.a, y: (evt.clientY - CTM.f) / CTM.d };
+  }
+
+  function toggleDeleteMode() {
+    deleteMode = !deleteMode;
+    const btn = document.getElementById('deleteToggleBtn');
+    document.getElementById('canvas-container').classList.toggle('delete-active', deleteMode);
+    if (deleteMode) { btn.classList.add('active'); btn.innerHTML = '🎯 TARGET DELETE (ON)'; }
+    else { btn.classList.remove('active'); btn.innerHTML = '🗑️ TARGET DELETE (OFF)'; }
+  }
+
+  function startDrag(evt) {
+    let target = evt.target.closest('.draggable');
+    if (!target) return;
+    if (deleteMode) { target.remove(); return; }
+
+    if (target.classList.contains('eq-module') && target.parentNode.classList.contains('modules-container')) {
+      let rack = target.closest('.rack-frame');
+      let rackMatrix = rack.transform.baseVal.getItem(0).matrix;
+      let eqMatrix = target.transform.baseVal.getItem(0).matrix;
+      let globalX = rackMatrix.e + eqMatrix.e;
+      let globalY = rackMatrix.f + eqMatrix.f;
+      target.transform.baseVal.getItem(0).setTranslate(globalX, globalY);
+      document.getElementById('equipment-layer').appendChild(target);
+    }
+    
+    isRackDrag = target.classList.contains('rack-frame');
+    activeDrag = target;
+    
+    let pt = getMousePosition(evt);
+    let transform = activeDrag.transform.baseVal;
+    if (transform.length === 0 || transform.getItem(0).type !== SVGTransform.SVG_TRANSFORM_TRANSLATE) {
+      let translate = document.getElementById('canvas').createSVGTransform();
+      translate.setTranslate(0, 0);
+      transform.insertItemBefore(translate, 0);
+    }
+    
+    let matrix = transform.getItem(0).matrix;
+    offset.x = pt.x - matrix.e;
+    offset.y = pt.y - matrix.f;
+    
+    if (!isRackDrag) document.getElementById('equipment-layer').appendChild(activeDrag);
+    else document.getElementById('rack-layer').appendChild(activeDrag);
+  }
+
+  function drag(evt) {
+    if (activeDrag && !deleteMode) {
+      evt.preventDefault();
+      let pt = getMousePosition(evt);
+      activeDrag.transform.baseVal.getItem(0).setTranslate(pt.x - offset.x, pt.y - offset.y);
+    }
+  }
+
+  function endDrag(evt) {
+    if (activeDrag) {
+      if (!isRackDrag && activeDrag.classList.contains('eq-module')) {
+        let eqBox = activeDrag.getBoundingClientRect();
+        let center = { x: eqBox.left + eqBox.width/2, y: eqBox.top + eqBox.height/2 };
+        
+        let racks = document.querySelectorAll('.rack-frame');
+        for (let rack of racks) {
+          let rackBox = rack.getBoundingClientRect();
+          if (center.x > rackBox.left && center.x < rackBox.right && center.y > rackBox.top && center.y < rackBox.bottom) {
+            let rTx = rack.transform.baseVal.getItem(0).matrix;
+            let eTx = activeDrag.transform.baseVal.getItem(0).matrix;
+            let relY = eTx.f - rTx.f;
+            let slotIndex = Math.round((relY - 60) / 24);
+            if (slotIndex < 0) slotIndex = 0;
+            if (slotIndex > 41) slotIndex = 41;
+            
+            let snappedY = 60 + (slotIndex * 24);
+            let snappedX = 55;
+            
+            activeDrag.transform.baseVal.getItem(0).setTranslate(snappedX, snappedY);
+            rack.querySelector('.modules-container').appendChild(activeDrag);
+            break;
+          }
+        }
+      }
+      activeDrag = null;
+      isRackDrag = false;
+    }
+  }
+
+  document.getElementById('canvas').addEventListener('dblclick', function(evt) {
+    if (evt.target.classList.contains('editable-text') && !deleteMode) {
+      let current = evt.target.textContent;
+      let newText = prompt("Update Label:", current.includes('[') ? "" : current);
+      if (newText) {
+        evt.target.textContent = newText.toUpperCase();
+        saveCurrentSiteState(); // Auto save on text edit
+      }
+    }
+  });
+
+  function spawn(type, customSiteName = null, customRackNum = null) {
+    if (deleteMode) toggleDeleteMode();
+    let tmpl = document.getElementById('tmpl-' + type);
+    let clone = tmpl.cloneNode(true);
+    clone.removeAttribute('id');
+    
+    let x, y;
+    if (type === 'rack') {
+      clone.setAttribute('class', 'draggable rack-frame'); 
+      if (customSiteName) {
+        clone.querySelector('.site-title').textContent = customSiteName.toUpperCase();
+        clone.querySelector('.rack-title').textContent = "RACK 0" + customRackNum;
+      }
+      x = 100 + (spawnCounters.rack * 1050); y = 150; spawnCounters.rack++;
+      clone.setAttribute('transform', `translate(${x},${y})`);
+      document.getElementById('rack-layer').appendChild(clone);
+    } else {
+      clone.setAttribute('class', 'draggable eq-module'); 
+      x = 155; y = 250 + (spawnCounters.eq * 55); spawnCounters.eq++;
+      clone.setAttribute('transform', `translate(${x},${y})`);
+      document.getElementById('equipment-layer').appendChild(clone); 
+    }
+  }
+
+  function saveLayout() {
+    saveCurrentSiteState();
+    let btn = document.querySelector('.btn-save');
+    let og = btn.innerHTML;
+    btn.innerHTML = "✅ SAVED SECURELY";
+    setTimeout(() => { btn.innerHTML = og; }, 2000);
+  }
+</script>
+</body>
+</html>
